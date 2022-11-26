@@ -11,7 +11,7 @@ Run it： **python SWE_sphere_torch.py --save_xdmf**.
 Due to the need for pre-compilation, some of the parameters, such as order and flux limiter could to be set manually.
 #Validation. 
 We use [Pyclaw][3] to compare with classic solvers. 
-1. Reference solutions can use <u>sphere_reference.py</u>, <u>quad_reference</u> to generate. 
+1. Reference solutions can use <u>sphere_reference.py</u>, <u>quad_reference.py</u> to generate. 
 2. Here provided relative error <u>validation_error.py</u> and convergence order validation <u>validation_conver.py</u>. 
 
 ## ML-based solvers. 
