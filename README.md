@@ -4,10 +4,10 @@ Code for master thesis: A Machine Learning accelerated geophysical fluid solver.
 Here we implement the classic and ML-based Euler and shallow water equation (SWE) solver. 
 ## Classic solvers. 
 The classical solver contains 1d,2d Euler equations, 1d,2d, spherical SWEs equations solvers. They are implemented under [Dace][1] and [Torch][2] framework.  
-### Torch framework. 
+### (1)Torch framework. 
 Each solver contains a variety of interfaces, all of which can be entered using ArgumentParser, including resolution, order, run time, numerical flux, flux limiter, integration type, boundary condition and save format.  
 Run it： **python SWE_sphere_torch.py --save_xdmf**. 
-### Dace framework. 
+### (2)Dace framework. 
 Due to the need for pre-compilation, some of the parameters, such as order and flux limiter could to be set manually.
 #Validation. 
 We use [Pyclaw][3] to compare with classic solvers. 
@@ -22,7 +22,6 @@ e.g. **python SWE_sphere.py --solver=cnn**.
 In addition, you can also test existing models with the corresponding test files.   
 e.g. **python SWE_sphere_test.py**. 
 3.In the second and third solvers, you can additionally set the solver scale in ArgumentParser **--scale==8** **--scale==16** ...  
-
 
 [1]:https://github.com/spcl/dace
 [2]:https://pytorch.org/
