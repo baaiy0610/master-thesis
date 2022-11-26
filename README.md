@@ -15,7 +15,7 @@ We use [Pyclaw][3] to compare with classic solvers.
 2. Here provided relative error *validation_error.py* and convergence order validation *validation_conver.py*. 
 
 ## ML-based solvers. 
-The classical solver include three different CNN approach for 1d,2d and spherical SWEs equations solvers.  
+The data-driven embeded solver include three different CNN approach for 1d,2d and spherical SWEs equations solvers.  
 1. SRCNN is used in the NN structure. A simple 1D-2D test can be performed here: *python SRCNN2d.py*
 3. If needed, the training set can be regenerated using “dataset_generator.py” and trained with the corresponding neural network model "cnn.py."  
 4. *test.ckpt*, *test-16.ckpt* etc. is the data of the trained model, you can set the solver type "classic" or "cnn" in ArgumentParser.  
