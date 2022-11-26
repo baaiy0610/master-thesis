@@ -11,18 +11,17 @@ Run it： **python SWE_sphere_torch.py --save_xdmf**.
 Due to the need for pre-compilation, some of the parameters, such as order and flux limiter could to be set manually.
 #Validation. 
 We use [Pyclaw][3] to compare with classic solvers. 
-1. Reference solutions can use <u>sphere_reference.py</u>, <u>quad_reference.py</u> to generate. 
-2. Here provided relative error <u>validation_error.py</u> and convergence order validation <u>validation_conver.py</u>. 
+1. Reference solutions can use *sphere_reference.py*, *quad_reference.py* to generate. 
+2. Here provided relative error *validation_error.py* and convergence order validation *validation_conver.py*. 
 
 ## ML-based solvers. 
 The classical solver include three different CNN approach for 1d,2d and spherical SWEs equations solvers.  
 1. If needed, the training set can be regenerated using “dataset_generator.py” and trained with the corresponding neural network model "cnn.py."  
-2. <u>test.ckpt</u>, <u>test-16.ckpt</u> etc. is the data of the trained model, you can set the solver type "classic" or "cnn" in ArgumentParser.  
+2. *test.ckpt*, *test-16.ckpt* etc. is the data of the trained model, you can set the solver type "classic" or "cnn" in ArgumentParser.  
 e.g. **python SWE_sphere.py --solver=cnn**. 
 In addition, you can also test existing models with the corresponding test files.   
 e.g. **python SWE_sphere_test.py**. 
 3.In the second and third solvers, you can additionally set the solver scale in ArgumentParser **--scale==8** **--scale==16** ...  
-<u>下划线 underline</u>
 [1]:https://github.com/spcl/dace
 [2]:https://pytorch.org/
 [3]:https://github.com/clawpack/pyclaw
