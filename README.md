@@ -1,7 +1,7 @@
 # Master Thesis
-Code for master thesis: A Machine Learning accelerated geophysical fluid solver. 
-Author: Yang Bai. 
-Here we implement the classic and ML-based Euler and shallow water equation (SWE) solver. 
+Code for master thesis: A Machine Learning accelerated geophysical fluid solver.  
+Author: Yang Bai.  
+Here we implement the classic and ML-based Euler and shallow water equation (SWE) solver.  
 ## Classic solvers. 
 The classical solver contains 1d,2d Euler equations, 1d,2d, spherical SWEs equations solvers. They are implemented under [Dace][1] and [Torch][2] framework.  
 ### (1)Torch framework. 
