@@ -21,7 +21,8 @@ The data-driven embeded solver include three different CNN approaches for 1d,2d 
 3. *test.ckpt*, *test-16.ckpt* etc. is the data of the trained model, you can set the solver type "classic" or "cnn" in ArgumentParser.  
 e.g. **python SWE_sphere.py --solver=cnn**. 
 In addition, you can also test existing models with the corresponding test files.   
-e.g. **python SWE_sphere_test.py**.  
+e.g. **python SWE_sphere_test.py**.   
+
 4.In the second and third solvers, you can additionally set the solver scale in ArgumentParser **--scale==8** **--scale==16** ...  
 
 [1]:https://github.com/spcl/dace
