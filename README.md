@@ -1,6 +1,6 @@
-# master-thesis
+# Master Thesis
 Code for master thesis: A Machine Learning accelerated geophysical fluid solver. 
-
+Author: Yang Bai. 
 Here we implement the classic and ML-based Euler and shallow water equation (SWE) solver. 
 ## Classic solvers. 
 The classical solver contains 1d,2d Euler equations, 1d,2d, spherical SWEs equations solvers. They are implemented under [Dace][1] and [Torch][2] framework.  
@@ -11,8 +11,8 @@ Run it： **python SWE_sphere_torch.py --save_xdmf**.
 Due to the need for pre-compilation, some of the parameters, such as order and flux limiter could to be set manually.
 #Validation. 
 We use [Pyclaw][3] to compare with classic solvers. 
-1. Reference solutions can use *sphere_reference.py*, *quad_reference* to generate. 
-2. Here provided relative error *validation_error* and convergence order validation *validation_conver.py*. 
+1. Reference solutions can use <u>sphere_reference.py</u>, <u>quad_reference</u> to generate. 
+2. Here provided relative error <u>validation_error.py</u> and convergence order validation <u>validation_conver.py</u>. 
 
 ## ML-based solvers. 
 The classical solver include three different CNN approach for 1d,2d and spherical SWEs equations solvers.  
