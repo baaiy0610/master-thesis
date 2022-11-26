@@ -9,7 +9,7 @@ Each solver contains a variety of interfaces, all of which can be entered using 
 Run it： **python SWE_sphere_torch.py --save_xdmf**. 
 ### (2)Dace framework. 
 Due to the need for pre-compilation, some of the parameters, such as order and flux limiter could to be set manually.
-#Validation. 
+### (3)Validation. 
 We use [Pyclaw][3] to compare with classic solvers. 
 1. Reference solutions can use *sphere_reference.py*, *quad_reference.py* to generate. 
 2. Here provided relative error *validation_error.py* and convergence order validation *validation_conver.py*. 
