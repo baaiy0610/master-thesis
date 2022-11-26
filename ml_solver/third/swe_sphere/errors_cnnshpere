@@ -1,0 +1,74 @@
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/torch/utils/data/dataloader.py:563: UserWarning: This DataLoader will create 6 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+wandb: Currently logged in as: yanbai. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.13.3
+wandb: Run data is saved locally in ./wandb/run-20221106_190047-3ivtr98h
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run RUN_ResBlock_iter_lr1e-04_newdata@2022-11-06 19:00:45.685938
+wandb: ⭐️ View project at https://wandb.ai/yanbai/SWE-cnn
+wandb: 🚀 View run at https://wandb.ai/yanbai/SWE-cnn/runs/3ivtr98h
+Auto select gpus: [0, 1, 2]
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/torch/utils/data/dataloader.py:563: UserWarning: This DataLoader will create 6 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+Auto select gpus: [0, 1, 2]
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/3
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/3
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/torch/utils/data/dataloader.py:563: UserWarning: This DataLoader will create 6 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+Auto select gpus: [0, 1, 2]
+Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/3
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 3 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2]
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2]
+
+  | Name | Type       | Params
+------------------------------------
+0 | conv | Sequential | 226 K 
+------------------------------------
+226 K     Trainable params
+0         Non-trainable params
+226 K     Total params
+0.905     Total estimated model params size (MB)
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/torch/utils/data/dataloader.py:563: UserWarning: This DataLoader will create 6 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/pytorch_lightning/core/module.py:555: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  value = torch.tensor(value, device=self.device)
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:231: UserWarning: You called `self.log('current_len', ...)` in your `training_step` but the value needs to be floating point. Converting it to torch.float32.
+  warning_cache.warn(
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/pytorch_lightning/core/module.py:555: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  value = torch.tensor(value, device=self.device)
+/users/ybai/miniconda3/envs/dev/lib/python3.10/site-packages/pytorch_lightning/core/module.py:555: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  value = torch.tensor(value, device=self.device)
+Time limit reached. Elapsed time is 23:45:03. Signaling Trainer to stop.
+wandb: Waiting for W&B process to finish... (success).
+wandb: - 0.523 MB of 0.523 MB uploaded (0.029 MB deduped)wandb: \ 0.523 MB of 0.523 MB uploaded (0.029 MB deduped)wandb: | 0.523 MB of 0.523 MB uploaded (0.029 MB deduped)wandb: / 0.523 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: - 0.523 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: \ 0.523 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: | 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: / 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: - 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: \ 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: | 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: / 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb: - 0.597 MB of 0.597 MB uploaded (0.029 MB deduped)wandb:                                                                                
+wandb: W&B sync reduced upload amount by 4.9%             
+wandb: 
+wandb: Run history:
+wandb:         current_len ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:               epoch ▁▁▁▁▁▁▁▁▁▃▃▃▃▃▃▃▃▃▅▅▅▅▅▅▅▅▅▆▆▆▆▆▆▆▆▆████
+wandb:          train_loss ▆▆▂▄▅▅▇▅▅█▆▇▄▄▃▅▂▃▃▃▂▄▂▃▂▂▃▂▂▁▁▂▁▂▁▂▁▁▁▁
+wandb:   train_loss_energy ▂▅▅▂▁▄▂▁▃▃▂▅▁▃▂▂▂▂▃▇▂▄▂█▂▁▃▆▁▁▂▄▃▂▂▁▁▂▁▁
+wandb: trainer/global_step ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
+wandb: 
+wandb: Run summary:
+wandb:         current_len 31.0
+wandb:               epoch 4
+wandb:          train_loss 6e-05
+wandb:   train_loss_energy 0.0
+wandb: trainer/global_step 2249
+wandb: 
+wandb: Synced RUN_ResBlock_iter_lr1e-04_newdata@2022-11-06 19:00:45.685938: https://wandb.ai/yanbai/SWE-cnn/runs/3ivtr98h
+wandb: Synced 7 W&B file(s), 0 media file(s), 0 artifact file(s) and 1 other file(s)
+wandb: Find logs at: ./wandb/run-20221106_190047-3ivtr98h/logs

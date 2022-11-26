@@ -1,0 +1,14 @@
+.DS_Store
+*/.DS_Store
+.ipynb_checkpoints/
+swedata/
+*.gif
+*/.references
+data/
+.dacecache
+_dacegraphs
+logs/
+*/.__pycache__
+*.sh
+clawpack/
+*/__pycache__
