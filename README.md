@@ -18,8 +18,8 @@ We use [Pyclaw][3] to compare with classic solvers.
 The data-driven embeded solver include four different CNN approaches for 1d,2d and spherical SWEs equations solvers.  
 1. SRCNN is used in the NN structure. A simple 1D-2D SRCNN test can be performed: *python SRCNN2d.py*
 2. If needed, the training set can be regenerated using *dataset_generator.py* and trained with the corresponding neural network model *cnn.py*.  
-3. *test.ckpt*, *test-16.ckpt* etc. is the data of the trained model, you can choose the solver type "classic" or "cnn" in ArgumentParser. e.g. **python SWE_sphere.py --solver=cnn**. In addition, you can also test existing models with the corresponding test files. e.g. **python SWE_sphere_test.py**.  
-4.In the second and third solvers, you can additionally set the solver scale in ArgumentParser **--scale==8** **--scale==16** ...  
+3. *test.ckpt*, *test-16.ckpt* etc. is the data of the trained model, you can choose the solver type "classic" or "cnn" in ArgumentParser. e.g. **python SWE_sphere.py --solver=cnn**. In addition, you can also test existing models with the corresponding test files. e.g. **python SWE_sphere_test.py**.
+4.In the third and fourth solvers, you can additionally set the scale factor in ArgumentParser **--scale==8** **--scale==16** ...  
 
 [1]:https://github.com/spcl/dace
 [2]:https://pytorch.org/
