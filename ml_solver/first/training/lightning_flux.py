@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import Trainer
+# torch.set_default_dtype(torch.float64)
 #---------------------------------------------------------------------------------------------------------------------------------------------
 
 g = 11489.57219
@@ -344,8 +345,8 @@ def boundary_padding(q, stencil_x, stencil_y, unsqueeze=False):
 
 class TrainDataset(Dataset):
     def __init__(self, path):
-        self.data_train = torch.as_tensor(zarr.open(f'{path}/Data_Train.zarr', mode="r")[0:]).double()
-        self.data_true  = torch.as_tensor(zarr.open(f'{path}/Data_True.zarr', mode="r")[0:]).double()
+        self.data_train = torch.as_tensor(zarr.open(f'{path}/Data_Train.zarr', mode="r")[0:]).float()
+        self.data_true  = torch.as_tensor(zarr.open(f'{path}/Data_True.zarr', mode="r")[0:]).float() 
 
     def __getitem__(self, index):
         #Train value
@@ -364,10 +365,10 @@ class TestDataset(Dataset):
     def __getitem__(self, index):
         #True value
         y_test_true = self.data_test_true[index]
-        y_test_true = torch.as_tensor(y_test_true).double()
+        y_test_true = torch.as_tensor(y_test_true).float()
         #Train value
         y_test = self.data_test[index]
-        y_test = torch.as_tensor(y_test).double()
+        y_test = torch.as_tensor(y_test).float() 
         return y_test, y_test_true
 
     def __len__(self):
@@ -429,11 +430,11 @@ class LightningCnn(pl.LightningModule):
         )
 
         # Layer 3
-        # self.conv2 = nn.Sequential(         
-        #     nn.Conv2d(mid_channel, self.mid_channel, self.kernel_size, 
-        #             padding=0),     
-        #     nn.ReLU(),                     
-        # )
+        self.conv3 = nn.Sequential(         
+            nn.Conv2d(mid_channel, self.mid_channel, self.kernel_size, 
+                    padding=0),     
+            nn.ReLU(),                     
+        )
 
         # Layer 4
         # self.conv2 = nn.Sequential(         
@@ -450,7 +451,7 @@ class LightningCnn(pl.LightningModule):
         # )
 
         #Layer 6
-        self.out = nn.Conv2d(self.mid_channel, 4*self.ninterp * (self.nstencil_out - 1), self.kernel_size,
+        self.out = nn.Conv2d(self.mid_channel, 4*2, self.kernel_size,
                     padding=0)                                                 #(nbatch, 4*ninterp * (nstencil_out - norder), nx, ny)
 
         #Layer 7
@@ -458,45 +459,21 @@ class LightningCnn(pl.LightningModule):
 
     def forward(self, input):
         (batch_size, _, nx, ny) = input.shape                                                  #(nbatch, 4, nx, ny)
-        #Convert (h, hu, hv, hw) to (h, u, v, w)
-        input_ = torch.zeros_like(input)
-        input_[:, 0, :, :] = input[:, 0, :, :]
-        input_[:, 1, :, :] = input[:, 1, :, :]/input[:, 0, :, :]
-        input_[:, 2, :, :] = input[:, 2, :, :]/input[:, 0, :, :]
-        input_[:, 3, :, :] = input[:, 3, :, :]/input[:, 0, :, :]
         #Normalize input data
-        input_normal = (input_ - self.mu) / self.std
+        input_normal = (input - self.mu) / self.std
         x = input_normal.float()                                                               #(nbatch, 4, nx, ny)
         x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
         x = self.conv1(x)
         x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
         x = self.conv2(x)
-        # x = self.conv3(x)
+        x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
+        x = self.conv3(x)
         # x = self.conv4(x)
         # x = self.conv5(x)
         x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
         x = self.out(x)                                                                        #(nbatch, 4*ninterp * (nstencil_out - norder), nx, ny)
-        x = x.moveaxis(1,-1)
-        x = torch.reshape(x, (batch_size, nx, ny, 4*self.ninterp, self.nstencil_out - 1))      #(nbatch, nx, xy, 4*ninterp, nstencil_out - norder)
-        #Compute alpha
-        alpha = self.constrain(x)                                                              #(nbatch, nx, ny, 4*ninterp, nstencil_out)
-        #padding for interpolate
-        input_pad = boundary_padding(input_, (self.stencil_x-1)//2, (self.stencil_y-1)//2)
-        input_unfold = input_pad.unfold(2, self.stencil_x, 1)                                  #(nbatch, 4, nx, ny, stencil_x)
-        input_unfold = input_unfold.unfold(3, self.stencil_y, 1)                               #(nbatch, 4, nx, ny, stencil_x, stencil_y)
-        input_unfold = input_unfold.reshape(batch_size, 4, nx, ny, self.nstencil_out)          #(nbatch, 4, nx, ny, nstencil_out)
-        input_unfold = input_unfold.unsqueeze(4)                                               #(nbatch, 4, nx, ny, 1, nstencil_out)
-        #Compute boundary data
-        alpha = torch.reshape(alpha, (batch_size, nx, ny, 4, self.ninterp, self.nstencil_out))
-        alpha = alpha.moveaxis(3,1)                                                            #(nbatch, 4, nx, ny, ninterp, nstencil_out)
-        q0_bound_ = (input_unfold * alpha).sum(dim=-1)                                         #(nbatch, 4, nx, ny, ninterp)
-        #Unnormalize output data
-        q0_bound = torch.zeros_like(q0_bound_)
-        q0_bound[:, 0, :, :] = q0_bound_[:, 0, :, :]
-        q0_bound[:, 1, :, :] = q0_bound_[:, 1, :, :]*q0_bound_[:, 0, :, :]
-        q0_bound[:, 2, :, :] = q0_bound_[:, 2, :, :]*q0_bound_[:, 0, :, :]
-        q0_bound[:, 3, :, :] = q0_bound_[:, 3, :, :]*q0_bound_[:, 0, :, :]
-        output = compute_flux(q0_bound, self.vert_3d, self.r).double()
+        x = torch.reshape(x, (batch_size, 4, 2, nx, ny))
+        output = x.moveaxis(2,-1)
         return output
 
     def cnn_mse_loss(self, predict, target):
@@ -596,7 +573,7 @@ if __name__ == "__main__":
     if args.gpu:
         trainer = pl.Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True, max_epochs=200, strategy="ddp_find_unused_parameters_false", logger=wandb_logger, check_val_every_n_epoch=1)
         if args.retrain:
-            trainer = pl.Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True, max_epochs=100, strategy="ddp_find_unused_parameters_false", resume_from_checkpoint="test_flux.ckpt", logger=wandb_logger, check_val_every_n_epoch=1)
+            trainer = pl.Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True, max_epochs=100, strategy="ddp_find_unused_parameters_false", resume_from_checkpoint="test_flux3.ckpt", logger=wandb_logger, check_val_every_n_epoch=1)
             print("Model loaded, keep training.........")
     else:
         trainer = pl.Trainer(accelerator="cpu", max_epochs=100, strategy="ddp_find_unused_parameters_false", logger=wandb_logger, check_val_every_n_epoch=1)
@@ -607,7 +584,7 @@ if __name__ == "__main__":
     #training
     trainer.fit(model, train_dataloader, test_dataloader)
     trainer.test(dataloaders=test_dataloader)
-    trainer.save_checkpoint("test_flux2.ckpt")
+    trainer.save_checkpoint("test_flux3.ckpt")
     print("Model has been saved successfully!")
     
     # model = LightningCnn.load_from_checkpoint("cnn_reconstruct1.ckpt")

@@ -11,7 +11,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import Trainer
 from shallow1d import flux_roe, flux_naive, g, initial_condition, boundary_condition_periodic, fvm_TVD_RK, fvm_2ndorder_space_classic, fvm_1storder
 import shallow1d
-from cnn2 import ConvBlock, LightningCnn
+from cnn import ConvBlock, LightningCnn
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 shallow1d.boundary_condition = boundary_condition_periodic
@@ -113,8 +113,7 @@ if __name__ == "__main__":
     q_out_low_3 = torch.zeros_like(q_out_low_1)                             #high to low
     q_out_cnn = torch.zeros_like(q_out_low_1)                               #cnn
 
-    # cnn = LightningCnn(dx=dx_low, stencil_x=3, learning_rate=10-3, mid_channel = 64, skip_connection=False, batch_norm=False)
-    cnn = LightningCnn.load_from_checkpoint(f"./test2-{downsample_ratio}.ckpt")
+    cnn = LightningCnn.load_from_checkpoint(f"./test-{downsample_ratio}.ckpt")
     cnn.eval()
     cnn.to(device)
     q_init = q_init.to(device)
@@ -133,6 +132,11 @@ if __name__ == "__main__":
     print("Classic low resolution 1st order result:")
     shallow1d.fvm = fvm_1storder
     integrate(q_init_low, q_out_low_1, cfl_number=0.1, dx=dx_low, nhalo=3, T=Te, save_ts=save_ts_low)
+
+    energy1 = energy_cal(q_out_low_1, dx_low)
+    energy2 = energy_cal(q_out_low_2, dx_low)
+    energy3 = energy_cal(q_out_low_3, dx_low)
+    energy4 = energy_cal(q_out_cnn, dx_low)
 
     q_out_low_3 = F.avg_pool1d(q_out_high, kernel_size = downsample_ratio).cpu().numpy()
     q_out_high = q_out_high.cpu().numpy()
@@ -167,7 +171,37 @@ if __name__ == "__main__":
     ax[4].set_xlabel("x")
     ax[4].set_ylabel("Time(s)")
 
-    # fig.colorbar(ax5, ax=ax.ravel().tolist(), fraction=0.01, pad=0.05)
     plt.show()
     plt.savefig(f"./test-{downsample_ratio}.jpg")
     plt.clf()
+
+    save_ts_low = save_ts_low.cpu().numpy()
+    energy1 = energy1.cpu().numpy()
+    energy2 = energy2.cpu().numpy()
+    energy3 = energy3.cpu().numpy()
+    energy4 = energy4.cpu().numpy()
+
+    #plot 1:
+    plt.subplot(1, 2, 1)
+    plt.plot(save_ts_low, energy1[0,...], label="classic 1st order")
+    plt.plot(save_ts_low, energy2[0,...], label="classic 2nd order")
+    plt.plot(save_ts_low, energy4[0,...], label="data-driven solver")   
+    plt.xlabel('Time (s)')
+    plt.ylabel('Total energy')
+    plt.ylim(bottom=energy1[0,0]-5)
+    plt.title('Total Energy comparison')
+    plt.legend()
+
+    #plot 2:
+    plt.subplot(1, 2, 2)
+    plt.plot(save_ts_low, energy1[1,...], label="classic 1st order")
+    plt.plot(save_ts_low, energy2[1,...], label="classic 2nd orderr")
+    plt.plot(save_ts_low, energy4[1,...], label="data-driven solver")   
+    plt.xlabel('Time (s)')
+    plt.ylabel('Potential Enstrophy')
+    plt.ylim(bottom=energy1[1,0]-5)
+    plt.title('Potential Enstrophy comparison')
+    plt.legend()
+
+    plt.show()
+    plt.savefig("./Engergy.png")

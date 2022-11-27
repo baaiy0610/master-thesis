@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 import torch.utils.data as Data
 import zarr
 from pytorch_lightning.callbacks import ModelCheckpoint
-
+import matplotlib.pyplot as plt
 #---------------------------------------------------------------------------------------------------------------------------------------------
 def boundary_padding(q, stencil_x, stencil_y, unsqueeze=False):
     """
@@ -128,11 +128,11 @@ class LightningCnn(pl.LightningModule):
         )
 
         # Layer 3
-        # self.conv2 = nn.Sequential(         
-        #     nn.Conv2d(mid_channel, self.mid_channel, self.kernel_size, 
-        #             padding=0),     
-        #     nn.ReLU(),                     
-        # )
+        self.conv3 = nn.Sequential(         
+            nn.Conv2d(mid_channel, self.mid_channel, self.kernel_size, 
+                    padding=0),     
+            nn.ReLU(),                     
+        )
 
         # Layer 4
         # self.conv2 = nn.Sequential(         
@@ -149,7 +149,7 @@ class LightningCnn(pl.LightningModule):
         # )
 
         #Layer 6
-        self.out = nn.Conv2d(self.mid_channel, 4*self.ninterp * (self.nstencil_out - 1), self.kernel_size,
+        self.out = nn.Conv2d(self.mid_channel, 4*2, self.kernel_size,
                     padding=0)                                                 #(nbatch, 4*ninterp * (nstencil_out - norder), nx, ny)
 
         #Layer 7
@@ -157,45 +157,21 @@ class LightningCnn(pl.LightningModule):
 
     def forward(self, input):
         (batch_size, _, nx, ny) = input.shape                                                  #(nbatch, 4, nx, ny)
-        #Convert (h, hu, hv, hw) to (h, u, v, w)
-        input_ = torch.zeros_like(input)
-        input_[:, 0, :, :] = input[:, 0, :, :]
-        input_[:, 1, :, :] = input[:, 1, :, :]/input[:, 0, :, :]
-        input_[:, 2, :, :] = input[:, 2, :, :]/input[:, 0, :, :]
-        input_[:, 3, :, :] = input[:, 3, :, :]/input[:, 0, :, :]
         #Normalize input data
-        input_normal = (input_ - self.mu) / self.std
+        input_normal = (input - self.mu) / self.std
         x = input_normal.float()                                                               #(nbatch, 4, nx, ny)
         x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
         x = self.conv1(x)
         x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
         x = self.conv2(x)
-        # x = self.conv3(x)
+        x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
+        x = self.conv3(x)
         # x = self.conv4(x)
         # x = self.conv5(x)
         x = boundary_padding(x, (self.kernel_size-1)//2, (self.kernel_size-1)//2)
         x = self.out(x)                                                                        #(nbatch, 4*ninterp * (nstencil_out - norder), nx, ny)
-        x = x.moveaxis(1,-1)
-        x = torch.reshape(x, (batch_size, nx, ny, 4*self.ninterp, self.nstencil_out - 1))      #(nbatch, nx, xy, 4*ninterp, nstencil_out - norder)
-        #Compute alpha
-        alpha = self.constrain(x)                                                              #(nbatch, nx, ny, 4*ninterp, nstencil_out)
-        #padding for interpolate
-        input_pad = boundary_padding(input_, (self.stencil_x-1)//2, (self.stencil_y-1)//2)
-        input_unfold = input_pad.unfold(2, self.stencil_x, 1)                                  #(nbatch, 4, nx, ny, stencil_x)
-        input_unfold = input_unfold.unfold(3, self.stencil_y, 1)                               #(nbatch, 4, nx, ny, stencil_x, stencil_y)
-        input_unfold = input_unfold.reshape(batch_size, 4, nx, ny, self.nstencil_out)          #(nbatch, 4, nx, ny, nstencil_out)
-        input_unfold = input_unfold.unsqueeze(4)                                               #(nbatch, 4, nx, ny, 1, nstencil_out)
-        #Compute boundary data
-        alpha = torch.reshape(alpha, (batch_size, nx, ny, 4, self.ninterp, self.nstencil_out))
-        alpha = alpha.moveaxis(3,1)                                                            #(nbatch, 4, nx, ny, ninterp, nstencil_out)
-        q0_bound_ = (input_unfold * alpha).sum(dim=-1)                                         #(nbatch, 4, nx, ny, ninterp)
-        #Unnormalize output data
-        q0_bound = torch.zeros_like(q0_bound_)
-        q0_bound[:, 0, :, :] = q0_bound_[:, 0, :, :]
-        q0_bound[:, 1, :, :] = q0_bound_[:, 1, :, :]*q0_bound_[:, 0, :, :]
-        q0_bound[:, 2, :, :] = q0_bound_[:, 2, :, :]*q0_bound_[:, 0, :, :]
-        q0_bound[:, 3, :, :] = q0_bound_[:, 3, :, :]*q0_bound_[:, 0, :, :]
-        output = compute_flux(q0_bound, self.vert_3d, self.r)
+        x = torch.reshape(x, (batch_size, 4, 2, nx, ny))
+        output = x.moveaxis(2,-1)
         return output
 #---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -784,7 +760,6 @@ def limiter_koren(r):
 limiter = limiter_mc
 limiter_cnn = limiter_minmod2
 
-
 def fvm_2ndorder_space_cnn(q0, vert_3d, cell_center, cell_area, dt, r, nhalo, cnn):
     """
     Finite volume method for shallow water equation
@@ -799,7 +774,52 @@ def fvm_2ndorder_space_cnn(q0, vert_3d, cell_center, cell_area, dt, r, nhalo, cn
     assert nhalo > 0 and nhalo - 2 > 0
     output = cnn(q0[:, nhalo:-nhalo, nhalo:-nhalo].unsqueeze(0))
     output = output.squeeze(0)
-    output = torch.moveaxis(output, -1, 0) # [4, M, N，2] -> [2, 4, M, N]
+    output = torch.moveaxis(output, -1, 0).double() # [4, M, N，2] -> [2, 4, M, N]
+
+    vertbl = vert_3d[:, :-1, :-1]
+    vertul = vert_3d[:, :-1, 1:]
+    vertur = vert_3d[:, 1:, 1:]
+    vertbr = vert_3d[:, 1:, :-1]
+    #M+1, N+1
+    qc = q0[:, nhalo:-nhalo, nhalo:-nhalo]
+
+    flux_v = boundary_condition(output[0,...], nhalo)
+    flux_h = boundary_condition(output[1,...], nhalo)
+
+    flux_r = -flux_h[:, nhalo+1:-nhalo+1, nhalo:-nhalo]
+    flux_b = flux_v[:, nhalo:-nhalo, nhalo:-nhalo]
+    flux_l = flux_h[:, nhalo:-nhalo, nhalo:-nhalo]
+    flux_u = -flux_v[:, nhalo:-nhalo, nhalo+1:-nhalo+1]
+
+    flux_sum = flux_l + flux_u + flux_r + flux_b
+
+    fq = coriolis(qc, cell_center, dt)
+    cor = correction(qc, vertbl, vertul, vertur, vertbr, r)
+
+    flux_sum = momentum_on_tan(flux_sum, cell_center)
+    cor = momentum_on_tan(cor, cell_center)
+
+    q1c_upd = -dt/cell_area * (flux_sum + cor)
+
+    q1c = qc + q1c_upd + fq
+    q1 = boundary_condition(q1c, nhalo)
+    return q1
+
+def fvm_2ndorder_space_cnn_limiter(q0, vert_3d, cell_center, cell_area, dt, r, nhalo, cnn):
+    """
+    Finite volume method for shallow water equation
+    q0: double[4, M+nhalo*2, N+nhalo*2]
+    vert_3d: double[3, M+1, N+1]
+    cell_center: double[3, M, N]
+    cell_area: double[M, N]
+    dt: double
+    r: double
+    return: double[4, M+nhalo*2, N+nhalo*2]
+    """
+    assert nhalo > 0 and nhalo - 2 > 0
+    output = cnn(q0[:, nhalo:-nhalo, nhalo:-nhalo].unsqueeze(0))
+    output = output.squeeze(0)
+    output = torch.moveaxis(output, -1, 0).double() # [4, M, N，2] -> [2, 4, M, N]
 
     vertbl = vert_3d[:, :-1, :-1]
     vertul = vert_3d[:, :-1, 1:]
@@ -841,51 +861,6 @@ def fvm_2ndorder_space_cnn(q0, vert_3d, cell_center, cell_area, dt, r, nhalo, cn
     flux_u = flux_u_low - yphi[:, :, 1:]*(flux_u_low - flux_u_high)
     flux_r = flux_r_low - xphi[:, 1:, :]*(flux_r_low - flux_r_high)
     flux_b = flux_b_low - yphi[:, :, :-1]*(flux_b_low - flux_b_high)
-
-    flux_sum = flux_l + flux_u + flux_r + flux_b
-
-    fq = coriolis(qc, cell_center, dt)
-    cor = correction(qc, vertbl, vertul, vertur, vertbr, r)
-
-    flux_sum = momentum_on_tan(flux_sum, cell_center)
-    cor = momentum_on_tan(cor, cell_center)
-
-    q1c_upd = -dt/cell_area * (flux_sum + cor)
-
-    q1c = qc + q1c_upd + fq
-    q1 = boundary_condition(q1c, nhalo)
-    return q1
-
-def fvm_2ndorder_space_cnn_nolimiter(q0, vert_3d, cell_center, cell_area, dt, r, nhalo, cnn):
-    """
-    Finite volume method for shallow water equation
-    q0: double[4, M+nhalo*2, N+nhalo*2]
-    vert_3d: double[3, M+1, N+1]
-    cell_center: double[3, M, N]
-    cell_area: double[M, N]
-    dt: double
-    r: double
-    return: double[4, M+nhalo*2, N+nhalo*2]
-    """
-    assert nhalo > 0 and nhalo - 2 > 0
-    output = cnn(q0[:, nhalo:-nhalo, nhalo:-nhalo].unsqueeze(0))
-    output = output.squeeze(0)
-    output = torch.moveaxis(output, -1, 0) # [4, M, N，2] -> [2, 4, M, N]
-
-    vertbl = vert_3d[:, :-1, :-1]
-    vertul = vert_3d[:, :-1, 1:]
-    vertur = vert_3d[:, 1:, 1:]
-    vertbr = vert_3d[:, 1:, :-1]
-    #M+1, N+1
-    qc = q0[:, nhalo:-nhalo, nhalo:-nhalo]
-
-    flux_v = boundary_condition(output[0,...], nhalo)
-    flux_h = boundary_condition(output[1,...], nhalo)
-
-    flux_r = -flux_h[:, nhalo+1:-nhalo+1, nhalo:-nhalo]
-    flux_b = flux_v[:, nhalo:-nhalo, nhalo:-nhalo]
-    flux_l = flux_h[:, nhalo:-nhalo, nhalo:-nhalo]
-    flux_u = -flux_v[:, nhalo:-nhalo, nhalo+1:-nhalo+1]
 
     flux_sum = flux_l + flux_u + flux_r + flux_b
 
@@ -1044,6 +1019,14 @@ def integrate(q_out, q_init, vert_3d, cell_center, cell_area, r, save_ts, nhalo,
             sum_ = torch.sum(tmp * cell_area[None, ...]).item()
             print("T =", T, "it =", it, "dt =", dt, "Total energy:", sum_)
 
+def energy_cal(q, cell_area):
+    potential = 0.5 * torch.square(q[:, 0, ...]) * g
+    kinetic = 0.5 * (torch.square(q[:, 1,...]) + torch.square(q[:, 2, ...])) / q[:, 0, ...]
+    energy = ((potential + kinetic) * cell_area).sum(dim=(-2, -1))
+    potential = (potential * cell_area).sum(dim=(-2, -1))
+    Total = torch.stack((energy, potential), dim=0)
+    return Total
+
 if __name__=="__main__":
     from argparse import ArgumentParser
     import MeshGrid
@@ -1053,7 +1036,9 @@ if __name__=="__main__":
     parser.add_argument("--order", default="2", type=int)
     parser.add_argument("--period", default=1.0, type=float)
     parser.add_argument("--flux", default="roe", type=str)
-    parser.add_argument("--solver", default="classic", type=str)
+    parser.add_argument("--solver", default="cnn", type=str)
+    parser.add_argument("--test_energy", default="store_true", type=str)
+
     args = parser.parse_args()
     
     M = args.resolution_x
@@ -1106,3 +1091,94 @@ if __name__=="__main__":
     q_out = q_out.cpu().detach().numpy()
     vert_3d = vert_3d.cpu()
     MeshGrid.save_sphere_grid_xdmf(f"{path}/sphere-fvm-{M}-{N}-{args.flux}-{args.solver}.xdmf", zip(save_ts, q_out), vert_3d)
+
+    if args.test_energy:
+        save_ts = torch.arange(0, args.period+0.01, args.period/5., device=device)
+        q_out1 = torch.zeros((len(save_ts), 4, M, N), device=device, requires_grad=False)   #1st order
+        q_out2 = torch.zeros_like(q_out1)                                                   #2nd order
+        q_out3 = torch.zeros_like(q_out1)                                                   #cnn
+
+        q_init = q_init.to(device)
+        vert_3d = vert_3d.to(device)
+        cell_area = cell_area.to(device)
+        cell_center_3d = cell_center_3d.to(device)
+
+        print("Classic low result:")
+        fvm_2ndorder_space = fvm_2ndorder_space_classic
+        fvm = fvm_1storder
+        integrate(q_out1, q_init, vert_3d, cell_center_3d, cell_area, r, save_ts, nhalo, cnn=None)
+
+        print("Classic high result:")
+        fvm_2ndorder_space = fvm_2ndorder_space_classic
+        fvm = fvm_TVD_RK
+        integrate(q_out2, q_init, vert_3d, cell_center_3d, cell_area, r, save_ts, nhalo, cnn=None)
+
+        print("Cnn result:")
+        with torch.no_grad():
+            fvm_2ndorder_space = fvm_2ndorder_space_cnn
+            cnn = LightningCnn.load_from_checkpoint("./test_flux.ckpt")
+            fvm = fvm_TVD_RK
+            integrate(q_out3, q_init, vert_3d, cell_center_3d, cell_area, r, save_ts, nhalo, cnn=cnn)
+
+        energy1 = energy_cal(q_out1, cell_area)
+        energy2 = energy_cal(q_out2, cell_area)
+        energy3 = energy_cal(q_out3, cell_area)
+
+        q_out1 = q_out1.cpu().numpy()                 
+        q_out2 = q_out2.cpu().numpy()
+        q_out3 = q_out3.cpu().numpy()
+
+        save_ts = save_ts.cpu().numpy()
+        dataset = np.array([q_out1, q_out2, q_out3])
+        fname = ["classic 1st", "classic 2nd", "cnn"]
+
+        fig, axs = plt.subplots(nrows=3, ncols=5, figsize=(20, 20), dpi=400)
+        for i in range(len(fname)):
+            for j in range(5):
+                pcm = axs[i,j].imshow(dataset[i, j, 0, ...], cmap='viridis', origin="lower")
+                if j == 0:
+                    axs[i,j].set_title(f"{fname[i].capitalize()} t=0 day")
+                else:
+                    axs[i,j].set_title("t={time} days".format(time = '%.1f'%save_ts[j]))
+                # divider = make_axes_locatable(axs[i,j])
+                # cax = divider.append_axes("right", size="5%", pad=0.05)
+                # fig.colorbar(pcm, cax=cax)
+                axs[i,j].set_xlabel('x')
+                axs[i,j].set_ylabel('y')
+                # axs[i,j].axis("off")
+                axs[i,j].xaxis.set_ticks([])
+                axs[i,j].yaxis.set_ticks([])
+
+        plt.tight_layout()
+        plt.savefig(f"./test-cnn-sphere.png")
+        plt.show()
+
+        energy1 = energy1.cpu().numpy()
+        energy2 = energy2.cpu().numpy()
+        energy3 = energy3.cpu().numpy()
+
+        plt.figure(figsize=(20, 8), dpi=400)
+        #plot 1:
+        plt.subplot(1, 2, 1)
+        plt.plot(save_ts, energy1[0,...], label="classic 1st order")
+        plt.plot(save_ts, energy2[0,...], label="classic 2nd order")
+        plt.plot(save_ts, energy3[0,...], label="data-driven solver")   
+        plt.xlabel('Time (days)')
+        plt.ylabel('Total energy')
+        plt.ylim(bottom=energy1[0,0] - 0.01)
+        plt.title('Total Energy comparison')
+        plt.legend()
+
+        #plot 2:
+        plt.subplot(1, 2, 2)
+        plt.plot(save_ts, energy1[1,...], label="classic 1st order")
+        plt.plot(save_ts, energy2[1,...], label="classic 2nd order")
+        plt.plot(save_ts, energy3[1,...], label="data-driven solver")  
+        plt.xlabel('Time (days)')
+        plt.ylabel('Potential Enstrophy')
+        plt.ylim(bottom=energy1[0,0] - 0.01)
+        plt.title('Potential Enstrophy comparison')
+        plt.legend()
+
+        plt.show()
+        plt.savefig("./Engergy.png")
